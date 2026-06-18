@@ -1,0 +1,12 @@
+﻿<Solution>
+  <Project Path="EnoxSoftware.OpenCVForUnity.csproj" />
+  <Project Path="EnoxSoftware.OpenCVForUnityExample.csproj" />
+  <Project Path="Unity.ML-Agents.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.ML-Agents.Editor.Input.csproj" />
+  <Project Path="Unity.ML-Agents.CommunicatorObjects.csproj" />
+  <Project Path="EnoxSoftware.OpenCVForUnity.Editor.csproj" />
+  <Project Path="Unity.ML-Agents.Editor.csproj" />
+  <Project Path="Unity.ML-Agents.Input.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+</Solution>

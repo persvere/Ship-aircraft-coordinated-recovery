@@ -1,0 +1,204 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &7357068555396683014
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.361
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      propertyPath: m_Name
+      value: Ocean_01 (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 351008374651789602}
+  m_SourcePrefab: {fileID: 100100000, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+--- !u!1 &7699157613737453655 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7c6fec00920019640bd72a4a4efdca94, type: 3}
+  m_PrefabInstance: {fileID: 7357068555396683014}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &351008374651789602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7699157613737453655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e40fcfdcb2e0244bbb8f42dc034b01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FFTOcean_Script
+  InitialSpectrumTexture: {fileID: 0}
+  SpectrumTexture: {fileID: 0}
+  DisplacementTexture: {fileID: 0}
+  SlopeTexture: {fileID: 0}
+  BuoyancyData: {fileID: 0}
+  VariationMask: {fileID: 0}
+  FFTComputeShader: {fileID: 7200000, guid: 6f94cfb1e33042849b8127609f7f7239, type: 3}
+  FFTWaterShader: {fileID: 4800000, guid: d62c8a9096053704e9e405366d2cdad9, type: 3}
+  waterMeshLength: 1500
+  waterMeshRes: 10
+  TessEdgeLength: 16
+  DisplaceDepthAttenuation: 10
+  FoamDepthAttenuation: 20
+  Speed: 0.18
+  Seed: 28
+  Gravity: 9.81
+  LayerContribute0: 0.8
+  Tile0: 0.003
+  DisplaySpectrum0:
+    scale: 0.4
+    windSpeed: 1200
+    windDirection: 50
+    fetch: 600
+    spreadBlend: 0.876
+    swell: 0.9
+    peakEnhancement: 5
+    shortWavesFade: 0.8
+  DisplaySpectrum1:
+    scale: 0.4
+    windSpeed: 1000
+    windDirection: 0
+    fetch: 500
+    spreadBlend: 1
+    swell: 0.9
+    peakEnhancement: 5
+    shortWavesFade: 0.8
+  LayerContribute1: 0.8
+  Tile1: 0.06
+  DisplaySpectrum2:
+    scale: 0.1
+    windSpeed: 800
+    windDirection: 45
+    fetch: 400
+    spreadBlend: 0.98
+    swell: 0.9
+    peakEnhancement: 5
+    shortWavesFade: 0.4
+  DisplaySpectrum3:
+    scale: 0.1
+    windSpeed: 800
+    windDirection: 135
+    fetch: 350
+    spreadBlend: 0.98
+    swell: 0.9
+    peakEnhancement: 5
+    shortWavesFade: 0.4
+  LayerContribute2: 0.6
+  Tile2: 0.12
+  DisplaySpectrum4:
+    scale: 0.04
+    windSpeed: 100
+    windDirection: 260
+    fetch: 100
+    spreadBlend: 0.95
+    swell: 0.8
+    peakEnhancement: 3
+    shortWavesFade: 0.4
+  DisplaySpectrum5:
+    scale: 0.04
+    windSpeed: 50
+    windDirection: 280
+    fetch: 100
+    spreadBlend: 0.95
+    swell: 0.8
+    peakEnhancement: 3
+    shortWavesFade: 0.4
+  LayerContribute3: 0.4
+  Tile3: 0.18
+  DisplaySpectrum6:
+    scale: 0.1
+    windSpeed: 10
+    windDirection: 0
+    fetch: 40
+    spreadBlend: 0.8
+    swell: 0.6
+    peakEnhancement: 1
+    shortWavesFade: 0.2
+  DisplaySpectrum7:
+    scale: 0.1
+    windSpeed: 10
+    windDirection: 0
+    fetch: 20
+    spreadBlend: 0.6
+    swell: 0.4
+    peakEnhancement: 1
+    shortWavesFade: 0.2
+  ScatterColor: {r: 0, g: 0.23785162, b: 1, a: 1}
+  ScatterPeakColor: {r: 0, g: 0.67, b: 1, a: 1}
+  WavePeakScatterStrength: 2
+  ScatterStrength: 0.1
+  ScatterShadowStrength: 0.1
+  AmbientDensity: 0.2
+  EnvirReflectStrength: 1
+  FoamRoughness: 0.2
+  Roughness: 0.1
+  NormalStrength: 0.2
+  HeightStrength: 1
+  ShadowIntensity: 0.2
+  FoamColor: {r: 1, g: 1, b: 1, a: 1}
+  WaveSharp: {x: 0.8, y: 0.8}
+  FoamBias: -0.71
+  FoamPower: 0.6
+  FoamAdd: 0.1
+  FoamDecayRate: 0.05
+  EdgeFoamPower: 0.01
+  VarMaskRange: 3
+  VarMaskPower: 3
+  VarMaskTexScale: 2
+  FogColor: {r: 0.5, g: 0.75, b: 0, a: 1}
+  FogDensity: 1
+  FogPower: 4

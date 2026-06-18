@@ -1,0 +1,76 @@
+default_settings: null
+behaviors:
+  MyBehavior:
+    trainer_type: ppo #使用的训练模型
+    hyperparameters: #超参数配置
+      batch_size: 1024  #每次更新使用的经验批次大小
+      buffer_size: 10240 #经验回放缓冲区大小
+      learning_rate: 0.0003 #学习率
+      beta: 0.005 #熵系数
+      epsilon: 0.2 #ppo裁剪参数（信任区域）
+      lambd: 0.95 #GAE参数（优势估计折扣）
+      num_epoch: 3 #每个批次训练多少轮
+      #调度器
+      learning_rate_schedule: linear #学习率调度器
+      beta_schedule: linear #熵系数调度器
+      epsilon_schedule: linear #ppo裁剪参数调度器
+    network_settings: #神经网络结构
+      normalize: false #是否归一化输入
+      hidden_units: 128 #隐藏层神经元数量
+      num_layers: 2 #隐藏层层数
+      vis_encode_type: simple #视觉编码器类型
+      memory: null #记忆网络...
+      goal_conditioning_type: hyper #目标条件类型（用于多任务学习）
+      deterministic: false #是否使用确定性策略
+    reward_signals:
+      extrinsic: #外在奖励
+        gamma: 0.99 #折扣因子
+        strength: 1.0 #奖励信号强度
+        network_settings:
+          normalize: false
+          hidden_units: 128
+          num_layers: 2
+          vis_encode_type: simple
+          memory: null
+          goal_conditioning_type: hyper
+          deterministic: false
+    init_path: null
+    keep_checkpoints: 5 #保留检查点数量
+    checkpoint_interval: 500000 #检查点保存间隔
+    max_steps: 5000000  #最大训练步数
+    time_horizon: 256 #时间视野
+    summary_freq: 50000 #记录TensorBoard的步数间隔
+    threaded: false
+    self_play: null
+    behavioral_cloning: null
+env_settings:
+  env_path: null #unity可执行文件路径
+  env_args: null
+  base_port: 5005 #通信端口
+  num_envs: 1 #并行环境数量
+  num_areas: 1 #训练区域数量
+  seed: -1 
+  max_lifetime_restarts: 10
+  restarts_rate_limit_n: 1
+  restarts_rate_limit_period_s: 60
+engine_settings:
+  width: 84 #屏幕宽度
+  height: 84 #屏幕高度
+  quality_level: 5 #图形质量等级
+  time_scale: 20 #实际训练速度倍率
+  target_frame_rate: -1
+  capture_frame_rate: 60
+  no_graphics: false #是否无图形运行
+environment_parameters: null
+checkpoint_settings:
+  run_id: firstagents #运行ID（影响输出文件夹名）
+  initialize_from: null #从哪个模型继续训练
+  load_model: false #是否加载模型
+  resume: false #是否继续训练
+  force: true #强制覆盖已有结构
+  train_model: false
+  inference: false
+  results_dir: results #结果保存目录
+torch_settings:
+  device: null
+debug: false

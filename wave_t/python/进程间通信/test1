@@ -1,0 +1,40 @@
+import socket
+
+def start_udp_server():
+    # 1. 设置 IP 和端口
+    # '127.0.0.1' 表示只允许本机通信
+    # '0.0.0.0' 表示允许局域网内其他机器通信
+    UDP_IP = "127.0.0.1"
+    UDP_PORT = 5005  # 确保这个端口没有被占用
+
+    # 2. 创建 UDP 套接字 (AF_INET 表示 IPv4, SOCK_DGRAM 表示 UDP)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    # 3. 绑定地址和端口
+    sock.bind((UDP_IP, UDP_PORT))
+
+    print(f"🐍 Python 服务器已启动，正在监听 {UDP_IP}:{UDP_PORT} ...")
+
+    while True:
+        # 4. 接收数据 (缓冲区大小设为 1024)
+        data, addr = sock.recvfrom(1024) 
+        
+        # 解码数据 (Unity 发送的是 UTF-8 字节)
+        message = data.decode('utf-8')
+        print(f"📩 收到来自 Unity 的消息: {message}")
+        print(f"   发送方地址: {addr}")
+
+        # 5. 处理逻辑 (这里简单演示：如果收到 "Move"，就回复 "Moved"）
+        response_msg = f"Python 已收到: {message}"
+        
+        # 6. 发送回复给 Unity
+        # 必须使用 addr (Unity 的临时端口) 发回，否则 Unity 收不到
+        sock.sendto(response_msg.encode('utf-8'), addr)
+        
+        # 简单的退出机制
+        if message == "exit":
+            print("收到退出指令，关闭服务器。")
+            break
+
+if __name__ == "__main__":
+    start_udp_server()

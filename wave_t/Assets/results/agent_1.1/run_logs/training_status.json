@@ -1,0 +1,110 @@
+{
+    "agent_1.2": {
+        "checkpoints": [
+            {
+                "steps": 1999366,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-1999366.onnx",
+                "reward": -122.88020324707031,
+                "creation_time": 1771183562.2771628,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-1999366.pt"
+                ]
+            },
+            {
+                "steps": 2998539,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-2998539.onnx",
+                "reward": 33.546388467152916,
+                "creation_time": 1771188454.0133765,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-2998539.pt"
+                ]
+            },
+            {
+                "steps": 3998877,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-3998877.onnx",
+                "reward": 54.676536560058594,
+                "creation_time": 1771193321.190103,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-3998877.pt"
+                ]
+            },
+            {
+                "steps": 4999713,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-4999713.onnx",
+                "reward": -33.67331466674805,
+                "creation_time": 1771198209.9626703,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-4999713.pt"
+                ]
+            },
+            {
+                "steps": 5998589,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-5998589.onnx",
+                "reward": -24.467694091796876,
+                "creation_time": 1771203084.374727,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-5998589.pt"
+                ]
+            },
+            {
+                "steps": 6999219,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-6999219.onnx",
+                "reward": -27.687155961990356,
+                "creation_time": 1771207964.1308308,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-6999219.pt"
+                ]
+            },
+            {
+                "steps": 7999933,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-7999933.onnx",
+                "reward": 4.9866823468889505,
+                "creation_time": 1771212842.8124523,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-7999933.pt"
+                ]
+            },
+            {
+                "steps": 8999317,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-8999317.onnx",
+                "reward": 95.94980316162109,
+                "creation_time": 1771217716.4163225,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-8999317.pt"
+                ]
+            },
+            {
+                "steps": 9999743,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-9999743.onnx",
+                "reward": 76.46576309204102,
+                "creation_time": 1771222583.532013,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-9999743.pt"
+                ]
+            },
+            {
+                "steps": 10001244,
+                "file_path": "results\\agent_1.1\\agent_1.2\\agent_1.2-10001244.onnx",
+                "reward": 77.19970703125,
+                "creation_time": 1771222583.619378,
+                "auxillary_file_paths": [
+                    "results\\agent_1.1\\agent_1.2\\agent_1.2-10001244.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 10001244,
+            "file_path": "results\\agent_1.1\\agent_1.2.onnx",
+            "reward": 77.19970703125,
+            "creation_time": 1771222583.619378,
+            "auxillary_file_paths": [
+                "results\\agent_1.1\\agent_1.2\\agent_1.2-10001244.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.28.0",
+        "torch_version": "2.4.1"
+    }
+}

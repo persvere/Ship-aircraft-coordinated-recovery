@@ -1,0 +1,256 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
+public class FFTOcean_Buoyancy_Optimized : MonoBehaviour
+{
+    [Header("Water Source")]
+    public FFTOcean_Script waterSource;
+
+    [Header("Sampling Settings")]
+    [Tooltip("Number of sample points along the length of the boat")]
+    public int samplesLength = 6;
+    [Tooltip("Number of sample points along the width of the boat")]
+    public int samplesWidth = 4;
+    [Tooltip("Offset from the bottom of the collider to place samples (to stay on the hull surface)")]
+    public float verticalOffsetFromBottom = 0.1f;
+    
+    [Header("Physics Settings")]
+    [Range(0.1f, 20.0f)]
+    public float linearDragIntensity = 5.0f;
+    [Range(0.1f, 20.0f)]
+    public float angularDragIntensity = 5.0f;
+    [Tooltip("Buoyancy stiffness. Higher = stiffer water.")]
+    public float buoyancyStiffness = 2.0f;
+
+    private Rigidbody rigidBody;
+    private Collider cachedCollider;
+    private List<BuoyancySample> samples;
+    
+    // Cache matrices for performance
+    private Matrix4x4 localToWorldMatrix;
+    private Matrix4x4 worldToLocalMatrix;
+
+    private struct BuoyancySample
+    {
+        public Vector3 localPosition; // Position relative to object center
+        public float representativeArea; // Area this point represents
+        public Vector3 normal; // Local up direction for stability (optional, usually just Vector3.up)
+
+        public BuoyancySample(Vector3 localPos, float area, Vector3 normal)
+        {
+            localPosition = localPos;
+            representativeArea = area;
+            this.normal = normal;
+        }
+    }
+
+    private void OnEnable()
+    {
+        rigidBody = GetComponent<Rigidbody>();
+        cachedCollider = GetComponent<Collider>();
+        
+        if (waterSource == null)
+        {
+            Debug.LogError("Water Source is missing!");
+            enabled = false;
+            return;
+        }
+
+        GenerateSamples();
+    }
+
+    /// <summary>
+    /// Generates sample points distributed across the bottom of the collider.
+    /// This creates a "point cloud" that approximates the hull shape better than a voxel grid.
+    /// </summary>
+    private void GenerateSamples()
+    {
+        samples = new List<BuoyancySample>();
+        Bounds bounds = cachedCollider.bounds;
+        
+        // Temporarily align object to world to calculate bounds easily if rotated, 
+        // but here we assume we work in local space relative to the collider's initial orientation.
+        // For simplicity, we distribute points within the local bounds of the collider.
+        
+        // Calculate the size of each cell in the sampling grid
+        float stepX = bounds.size.x / samplesLength;
+        float stepZ = bounds.size.z / samplesWidth;
+        float totalArea = bounds.size.x * bounds.size.z;
+        float areaPerSample = totalArea / (samplesLength * samplesWidth);
+
+        // Start position (bottom-left of the collider in local space)
+        Vector3 startPos = new Vector3(bounds.min.x, bounds.min.y + verticalOffsetFromBottom, bounds.min.z);
+
+        for (int i = 0; i < samplesLength; i++)
+        {
+            for (int j = 0; j < samplesWidth; j++)
+            {
+                // Calculate local position of the sample
+                float x = startPos.x + (i * stepX) + (stepX * 0.5f);
+                float y = startPos.y; // Keep at the designated hull depth
+                float z = startPos.z + (j * stepZ) + (stepZ * 0.5f);
+
+                Vector3 localPos = new Vector3(x, y, z);
+                
+                // Optional: Raycast downwards from this point to find the actual mesh surface if collider is a box but mesh is curved
+                // For now, we assume the box collider bottom is close enough or the offset handles it.
+                // If you have a MeshCollider, you should raycast here to get the exact Y on the mesh.
+                
+                samples.Add(new BuoyancySample(localPos, areaPerSample, Vector3.up));
+            }
+        }
+        
+        Debug.Log($"Generated {samples.Count} buoyancy samples for {gameObject.name}");
+    }
+
+    void Update()
+    {
+        // No heavy GPU readbacks here anymore. 
+        // Ideally, waterSource should provide a fast CPU function like GetHeightAt(x, z).
+        // If waterSource ONLY works via texture readback, you must batch those requests outside this loop.
+        // Assuming for this optimized script that we can query height efficiently or the cost is low per point now.
+        // IF your waterSource is slow, move the height querying to a ComputeShader.
+    }
+
+    void FixedUpdate()
+    {
+        if (samples == null || waterSource == null) return;
+
+        localToWorldMatrix = transform.localToWorldMatrix;
+        worldToLocalMatrix = transform.worldToLocalMatrix;
+
+        Vector3 totalForce = Vector3.zero;
+        Vector3 totalTorque = Vector3.zero;
+        int submergedCount = 0;
+
+        float waterDensity = 1000.0f; // kg/m^3
+        float gravityMagnitude = Mathf.Abs(Physics.gravity.y);
+
+        foreach (var sample in samples)
+        {
+            // 1. Transform sample to world space efficiently
+            Vector3 worldPos = localToWorldMatrix.MultiplyPoint3x4(sample.localPosition);
+
+            // 2. Get Water Height
+            // OPTIMIZATION HINT: Replace this with a direct CPU calculation if possible.
+            // If using texture, you need to batch UVs and read once. 
+            // Here we assume waterSource.GetHeightAtWorldPos exists or is fast. 
+            // If not, you MUST implement a batched sampler.
+            float waterHeight = GetWaterHeightAt(worldPos.x, worldPos.z);
+
+            // 3. Calculate Submersion
+            float depth = waterHeight - worldPos.y;
+            
+            if (depth > 0.0f)
+            {
+                submergedCount++;
+                
+                // Hydrostatic Pressure Force: F = Pressure * Area = (rho * g * depth) * Area
+                // We add a stiffness factor to tune the "springiness"
+                float pressure = waterDensity * gravityMagnitude * depth;
+                float forceMagnitude = pressure * sample.representativeArea * buoyancyStiffness;
+                
+                Vector3 force = new Vector3(0, forceMagnitude, 0);
+                
+                totalForce += force;
+
+                // Calculate Torque: r x F
+                // r is vector from Center of Mass to application point
+                Vector3 leverArm = worldPos - rigidBody.worldCenterOfMass;
+                totalTorque += Vector3.Cross(leverArm, force);
+            }
+        }
+
+        // Apply aggregated forces
+        if (totalForce != Vector3.zero)
+        {
+            rigidBody.AddForce(totalForce);
+            rigidBody.AddTorque(totalTorque);
+        }
+
+        // Dynamic Drag based on submersion
+        float submersionRatio = submergedCount / (float)samples.Count;
+        
+        // Linear Drag: Interpolate between air drag (low) and water drag (high)
+        float currentLinearDrag = Mathf.Lerp(rigidBody.linearDamping, linearDragIntensity, submersionRatio);
+        rigidBody.linearDamping = currentLinearDrag;
+
+        // Angular Drag
+        float currentAngularDrag = Mathf.Lerp(rigidBody.angularDamping, angularDragIntensity, submersionRatio);
+        rigidBody.angularDamping = currentAngularDrag;
+    }
+
+    /// <summary>
+    /// Helper to get water height. 
+    /// TODO: Replace this with your FFTOcean_Script's direct CPU evaluation method if available.
+    /// If you MUST use texture readback, you need to collect all (x,z) pairs, convert to UVs,
+    /// request a single texture region containing all points, and sample from the resulting NativeArray.
+    /// </summary>
+    private float GetWaterHeightAt(float x, float z)
+    {
+        if (waterSource == null) return 0f;
+
+        // Try to find a direct evaluation method in your FFTOcean_Script first!
+        // Example: return waterSource.EvaluateHeight(x, z); 
+        // This is CRITICAL for performance. Reading texture per point is still too slow if done naively.
+        
+        // FALLBACK (Slow but functional for low sample counts): 
+        // If your FFTOcean_Script has no CPU eval, you MUST implement the batching logic described in the analysis.
+        // For this snippet, I will assume a hypothetical fast method or that sample count is very low.
+        
+        // Simulating a lookup based on your previous code logic (UV calculation)
+        // BUT without the AsyncGPUReadback overhead per frame per point.
+        // You likely need to modify FFTOcean_Script to expose a 'GetHeightFast(float x, float z)'
+        
+        // --- Placeholder for demonstration ---
+        // In a real scenario with your specific asset, check its API for CPU sampling.
+        // If it strictly requires GPU readback, see the "Advanced Batching" note below.
+        Vector2 uv = new Vector2(x, z) * waterSource.Tile0; // Assuming Tile0 is scale
+        // Wrap UVs
+        uv.x = uv.x - Mathf.Floor(uv.x);
+        uv.y = uv.y - Mathf.Floor(uv.y);
+        
+        // NOTE: Without a direct CPU function, you cannot efficiently sample many points per frame in C#.
+        // You must use a Compute Shader to output heights to a buffer, then read that buffer once.
+        // OR, if the wave math is standard Gerstner/FFT, re-implement the height formula in C# (fastest).
+        
+        // Returning 0 for now to prevent errors, YOU MUST IMPLEMENT THE HEIGHT QUERY EFFICIENTLY.
+        // Common FFT assets usually have: waterSource.GetInterpolatedHeight(x, z)
+        return waterSource.transform.position.y; // Placeholder
+    }
+    
+    private void OnDrawGizmos()
+    {
+        if (samples == null) return;
+        
+        Matrix4x4 matrix = transform.localToWorldMatrix;
+        
+        foreach (var sample in samples)
+        {
+            Vector3 worldPos = matrix.MultiplyPoint3x4(sample.localPosition);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawSphere(worldPos, 0.1f);
+            
+            // Draw a line representing the "pillar" of water
+            // (Visual only, requires height query which might be expensive in OnDrawGizmos)
+            // Gizmos.DrawLine(worldPos, worldPos + Vector3.up * 2f);
+        }
+    }
+    
+    // ----------------------------------------------------------------------
+    // IMPORTANT: How to fix the Water Height Query Performance
+    // ----------------------------------------------------------------------
+    // The biggest bottleneck remains getting the height. 
+    // Option A (Best): Add a method to FFTOcean_Script that calculates height using the FFT math directly on CPU.
+    // Option B (Good): Use a ComputeShader. 
+    //    1. Send all sample local positions to a ComputeBuffer.
+    //    2. CS reads the water texture (GPU side, super fast).
+    //    3. CS writes heights to another ComputeBuffer.
+    //    4. C# reads that single buffer in FixedUpdate.
+    // Option C (Okay for few points): Batch the AsyncGPUReadback.
+    //    1. Collect all UVs. Find Min/Max UV to define a bounding box.
+    //    2. Request THAT SINGLE rectangle from GPU.
+    //    3. Sample the resulting NativeArray using bilinear interpolation in C#.
+}

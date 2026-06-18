@@ -1,0 +1,19 @@
+命令行模式
+# 生成单个标记
+python generate_aruco_markers.py single 42
+
+# 生成ID 0-9的标记
+python generate_aruco_markers.py batch 0 9
+
+# 生成10个随机标记
+python generate_aruco_markers.py random 10
+
+# 列出已生成的标记
+python generate_aruco_markers.py list
+
+# 清理目录
+python generate_aruco_markers.py clean
+
+交互模式
+# 启动交互界面
+python generate_aruco_markers.py

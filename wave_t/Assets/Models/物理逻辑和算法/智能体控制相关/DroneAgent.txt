@@ -1,0 +1,410 @@
+using UnityEngine;
+using Unity.MLAgents;
+// ML-Agents 2.x 需要
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Sensors; 
+// ========== 2. ML-Agents Agent ==========
+/*1.
+*/
+public class DroneAgent : Agent
+{
+    [Header("References")]
+    public DronePhysics dronePhysics;
+    public Transform landingPlatform;
+    public DroneFlightController droneFlightController;
+    
+    [Header("Training Parameters")]
+    public float decisionInterval = 0.02f;  // 决策间隔
+    public float maxEpisodeTime = 60f;     // 最长训练时间
+    
+    private Vector3 startPosition;
+    private float episodeStartTime;
+    private float lastDistance;
+    public float maxacceleration = 3;
+    public float maxbiasyaw = 3;
+    public float trainscale = 50;
+
+    [Header("归一化参数")]
+    public float maxPositionDistance = 350.0f;      // 最大位置距离
+    public float maxVelocity = 12f;             // 最大线速度
+    public float maxAngularVelocity = 20f;      // 最大角速度 (度/秒)
+    public float maxRelativeVelocity = 15f;     // 最大相对速度
+
+    [Header("奖励函数元数据")]
+    public float r_funnel=1; //漏斗奖励基础值
+    public float dirigger_funnel=40;//漏斗奖励触发阈值
+    public float alpha_funnel=1;
+    public float k_funnel=1;      //漏斗奖励收敛系数
+    public float r_attitude=20;//姿态对齐奖励基础值
+    public float dirigger_attitude=1;//姿态对齐奖励触发阈值
+    public float alpha_attitude=1;
+    public float k_attitude=1;    //姿态奖励收敛系数
+    public float omega_set=360.0f;//设定角速度
+    public float v_set=16.0f;//设定速度
+    public float lambda_omega=1;//角速度惩罚基础值
+    public float lambda_v=1;//速度惩罚基础值
+    public float w_align=1;//共线奖励基础值
+    public float w_p=1;         //位置奖励权重
+    public float w_v=1;         //速度奖励权重
+    public float w_theta=1;     //姿态奖励权重
+    public float w_omega=1;     //角速度奖励权重
+    public float R_landing=1;     //降落奖励
+    public float sigma=1;       //大奖收敛
+    public float simbol;         //重置初始点符号
+
+
+
+
+    private int count=0;
+    private int stepCounter = 0;
+    private Vector3 directiontest;
+    
+    public override void Initialize()
+    {
+        // 获取组件引用
+        if (dronePhysics == null)
+            dronePhysics = GetComponent<DronePhysics>();
+
+        if (droneFlightController == null)
+           droneFlightController = GetComponent<DroneFlightController>();
+        
+        // 记录初始位置
+        startPosition = transform.position;
+        
+        // 配置决策请求器
+        var requester = GetComponent<DecisionRequester>();
+        if (requester != null)
+        {
+            int decisionPeriod = Mathf.RoundToInt(decisionInterval / Time.fixedDeltaTime);
+            requester.DecisionPeriod = Mathf.Max(1, decisionPeriod);
+        }
+       
+    }
+    
+    public override void OnEpisodeBegin()
+    {
+        // 重置无人机
+
+        Vector3 randomPosition =  new Vector3(
+            Random.Range(-20f, 20f),
+            Random.Range(30f, 50f),
+            Random.Range(-40f, 40f)
+        );
+        
+        Quaternion randomRotation = Quaternion.Euler(
+            Random.Range(-10f, 10f),
+            Random.Range(0f, 360f),
+            Random.Range(-10f, 10f)
+        );
+        
+       dronePhysics.Reset(randomPosition, randomRotation);
+        //dronePhysics.Reset(new Vector3(-4.2f,31.8f,-29f), Quaternion.identity);
+        
+        
+        // 重置计时器
+        episodeStartTime = Time.time;
+        lastDistance = Vector3.Distance(transform.position, landingPlatform.position);
+        dronePhysics.velocity = Vector3.zero;
+        dronePhysics.relativeVelocity = Vector3.zero;
+        count = 0;
+    }
+    
+    public override void CollectObservations(Unity.MLAgents.Sensors.VectorSensor sensor)
+    {
+        if (dronePhysics == null || landingPlatform == null) return;
+        
+        
+        // 1. 相对位置 (3)
+        //Vector3 relativePos = dronePhysics.relativeposition;
+        //sensor.AddObservation(relativePos);
+
+        // 1. 相对位置归一化 (3维)
+        Vector3 relativePos = dronePhysics.relativeposition;
+        Vector3 normalizedPos = Vector3.ClampMagnitude(relativePos, maxPositionDistance) / maxPositionDistance;
+        sensor.AddObservation(normalizedPos);
+        
+        // 2. 无人机速度 (3)
+        //Vector3 droneVel = dronePhysics.velocity;
+        //sensor.AddObservation(droneVel);
+
+        // 2. 无人机世界速度归一化 (3维)
+        Vector3 droneVel = dronePhysics.velocity;
+        // 使用双曲正切tanh归一化，能更好地处理极端值
+        Vector3 normalizedVel = new Vector3(
+        TanhNorm(droneVel.x, maxVelocity),
+        TanhNorm(droneVel.y, maxVelocity),
+        TanhNorm(droneVel.z, maxVelocity)
+        );
+        sensor.AddObservation(normalizedVel);
+        
+        // 3. 相对姿态 (3)
+        Quaternion relativeRot = dronePhysics.relativeattitude;
+         Vector3 euler = relativeRot.eulerAngles;
+        // 将角度归一化到[-180, 180]再缩放到[-1, 1]
+        Vector3 normalizedEuler = new Vector3(
+        NormalizeAngle(euler.x) / 180f,  // [-1, 1]
+        NormalizeAngle(euler.y) / 180f,
+        NormalizeAngle(euler.z) / 180f
+        );
+        sensor.AddObservation(normalizedEuler);
+        //sensor.AddObservation(relativeRot.eulerAngles / 180f);
+        
+        // 4. 角速度 (3)
+        sensor.AddObservation(Vector3.ClampMagnitude(dronePhysics.angularVelocity, maxAngularVelocity) / maxAngularVelocity);
+        
+        /* 5. 当前电机推力 (4)
+        sensor.AddObservation(new float[] {
+            dronePhysics.motorThrusts[0],
+            dronePhysics.motorThrusts[1],
+            dronePhysics.motorThrusts[2],
+            dronePhysics.motorThrusts[3]
+        });*/
+        
+        
+        // 总共: 3+3+3+3+4 = 16个观测
+    }
+    
+    public override void OnActionReceived(ActionBuffers vectorAction)
+    {
+        
+        if (dronePhysics == null) return;
+        
+        // 1. 解析动作
+        Vector4 flycontrol = new Vector4(
+            vectorAction.ContinuousActions[0] * maxacceleration,  
+            vectorAction.ContinuousActions[1] * maxacceleration,
+            vectorAction.ContinuousActions[2] * maxacceleration,
+            vectorAction.ContinuousActions[3] * maxbiasyaw
+        );
+         stepCounter++;
+    //if (stepCounter % 100 == 0) 
+         //{Debug.Log($"[Agent] 最终控制量: {flycontrol}");}
+        
+        // 2. 传递给PD飞控
+        droneFlightController.setflycontrolcommend(flycontrol);
+        set_1(directiontest,flycontrol);
+        
+        // 3. 计算奖励
+        CalculateReward();
+        
+        // 4. 检查终止条件
+        CheckTerminalConditions();
+    }
+    
+    private void CalculateReward()
+    {
+        float reward = 0f;
+        Vector3 currentPos = transform.position;  //无人机位置
+        Vector3 platformPos = landingPlatform.position;  //船舶位置
+        Vector3 angularVelocity = dronePhysics.angularVelocity; //无人机角速度(弧度)
+        Vector3 AngularVelocity = angularVelocity*Mathf.Rad2Deg;//无人机角速度（角度）
+        float currentAngularSpeed = AngularVelocity.magnitude;//无人机角速度度模长（角度）
+        Vector3 droneSpeed = dronePhysics.velocity;//无人机速度
+        float currentspeed = droneSpeed.magnitude;//速度模长
+        Vector3 relativePos = dronePhysics.relativeposition;  //相对位置
+        Vector3 relativeVel = dronePhysics.relativeVelocity; //相对速度
+        Vector3 r_rel_norm = relativePos;//归一化相对位置
+        Vector3 n_boat_norm = landingPlatform.up.normalized;//船体法线向量
+        Vector3 n_drone_norm = transform.up.normalized;//无人机法线向量
+
+
+        float distance=relativePos.magnitude;//相对距离
+        Vector3 relativevelocity = dronePhysics.relativeVelocity;  //相对速度
+        Vector3 relativePosLocal = transform.InverseTransformDirection(relativePos);  //相对位置在本地坐标系下的表示
+        //1.虚拟漏斗奖励
+        reward=r_funnel *(1.0f / (1.0f + Mathf.Exp(-k_funnel * (dirigger_funnel - distance))))* Mathf.Pow(Vector3.Dot(r_rel_norm, n_boat_norm), alpha_funnel);
+        //Debug.Log($"reward_1={reward}");
+        //2.姿态对齐奖励
+        reward+=r_attitude *(1.0f / (1.0f + Mathf.Exp(-k_attitude * (dirigger_attitude - distance))))*Mathf.Pow(Mathf.Max(0f, Vector3.Dot(n_drone_norm, n_boat_norm)), alpha_attitude);
+        //Debug.Log($"reward_2={reward}");
+        //3.状态惩罚
+        reward+=-lambda_v * Mathf.Max(0f, (currentspeed - v_set)) * Mathf.Max(0f, (currentspeed - v_set));
+        //Debug.Log($"currentspeed={currentspeed}");
+        //Debug.Log($"reward_3={reward}");
+        reward+=-lambda_omega * Mathf.Max(0f, currentAngularSpeed-omega_set) * Mathf.Max(0f, currentAngularSpeed - omega_set);
+        //Debug.Log($"currentAngularSpeed=");
+        //Debug.Log($"reward_4={reward}");
+        //4.相对位置速度共线奖励
+        reward+=w_align*Vector3.Dot(relativePos.normalized,-relativeVel.normalized);
+        SetReward(reward);
+        //Debug.Log($"reward_5={reward}");
+    }
+    
+  private void CheckTerminalConditions()
+{
+    // 1. 获取状态
+    Vector3 currentPos = transform.position;  //无人机位置
+    Vector3 platformPos = landingPlatform.position;  //船舶位置
+    Vector3 angularVelocity = dronePhysics.angularVelocity; //无人机角速度(弧度)
+    Vector3 AngularVelocity = angularVelocity*Mathf.Rad2Deg;//无人机角速度（角度）
+    float currentAngularSpeed = AngularVelocity.magnitude;//无人机角度模长（角度）
+    Vector3 droneSpeed = dronePhysics.velocity;//无人机速度
+    float currentspeed = droneSpeed.magnitude;//速度模长
+    Vector3 relativePos = dronePhysics.relativeposition;  //相对位置
+    Vector3 relativeVel = dronePhysics.relativeVelocity; //相对速度
+    Vector3 r_rel_norm = relativePos;//归一化相对位置
+    Vector3 n_boat_norm = landingPlatform.up.normalized;//船体法线向量
+    Vector3 n_drone_norm = transform.up.normalized;//无人机法线向量
+
+    Vector3 Vel = dronePhysics.velocity;
+
+    Quaternion relativeRot = dronePhysics.relativeattitude;
+    
+    Vector3 euler = relativeRot.eulerAngles;
+    //求解误差方向余弦角度
+    float angleError=Mathf.Rad2Deg*Mathf.Acos(Vector3.Dot(n_drone_norm , n_boat_norm));
+    // 1. 标准化角度到 -180 ~ 180 范围
+    // Unity 的 eulerAngles 返回 0~360，我们需要有符号角度来计算偏差
+    float roll = euler.x > 180f ? euler.x - 360f : euler.x;
+    float pitch = euler.z > 180f ? euler.z - 360f : euler.z;
+    
+    // ==========================================
+    // 1. 硬性终止条件 (Hard Termination Conditions)
+    //    优先级最高，一旦触发直接结束，不给任何过程奖励
+    // ==========================================
+
+    //
+    float doneReasonReward = 0;
+    bool isDone = false;
+    // A. 速度安全熔断 (你的新要求)
+    //垂直水平速度模长
+    float verticalSpeed = droneSpeed[1];
+    Vector2 horizontalSpeeds = new Vector2(droneSpeed[1],droneSpeed[2]);
+    float horizontalSpeed = horizontalSpeeds.magnitude;
+    // 垂直速度 > 10 或 水平速度 > 20 -> 立即失败
+    if (verticalSpeed > 10f || horizontalSpeed > 20f)
+    {
+        doneReasonReward = -1.0f;
+        isDone = true;
+        //Debug.Log($"[Fail] Speed Limit Exceeded: V={verticalSpeed:F2}, H={horizontalSpeed:F2}");
+        goto ApplyReward; // 跳过所有过程奖励计算
+    }
+
+    // B. 角速度安全熔断 (你的新要求)
+    // 角速度 > 360 deg/s -> 立即失败 (失控旋转)
+    if (currentAngularSpeed > 360f)
+    {
+        doneReasonReward = -1.0f;
+        isDone = true;
+        //Debug.Log($"[Fail] Angular Speed Limit Exceeded");
+        goto ApplyReward;
+    }
+
+    // C. 成功着陆判定 (保持原有逻辑，但更严格)
+    if (relativePos.magnitude < 0.1f && verticalSpeed < 1.0f && horizontalSpeed < 1.5f && angleError < 20f)
+    {
+        //成功着陆大奖
+        //1. 计算指数部分的加权误差和
+        float errorPosition = w_p * Vector3.Dot(relativePos , relativePos);
+        float errorVelocity = w_v * Vector3.Dot(relativeVel , relativeVel);
+        float errorAngularVel = w_omega * Vector3.Dot(angularVelocity , angularVelocity);
+        float errorAttitude = -w_theta * (Vector3.Dot(n_drone_norm , n_boat_norm) - 1); // 注意：这里使用的是 dotAlign 的平方
+
+        float totalWeightedError = errorPosition + errorVelocity + errorAngularVel + errorAttitude;
+
+        // 2. 计算最终奖励 R = R_max * e^(-E / σ)
+        float exponent = -totalWeightedError / sigma;
+        float reward = R_landing * Mathf.Exp(exponent);
+        doneReasonReward = reward;
+        isDone = true;
+        //Debug.Log("[Success] Landing!");
+        goto ApplyReward;
+    }
+
+    // D. 坠毁判定
+    if (transform.position.y < 0.2f)
+    {
+        doneReasonReward = -1.0f;
+        isDone = true;
+        //Debug.Log("坠毁");
+        goto ApplyReward;
+    }
+
+    // E. 飞出边界
+    //距离模长
+    float currentDistance = relativePos.magnitude;
+    if (currentDistance > maxPositionDistance)
+    {
+        doneReasonReward = -1.0f;
+        isDone = true;
+        //Debug.Log($"超界限{currentDistance}{relativePos}");
+        goto ApplyReward;
+    }
+
+    // F. 超时判定
+    if (Time.time - episodeStartTime > maxEpisodeTime)
+    {
+        doneReasonReward = -1.0f;
+        isDone = true;
+        goto ApplyReward;
+    }
+
+    ApplyReward:
+    float totalReward = doneReasonReward;
+    
+    // 如果是终止状态，为了信用分配更清晰，可以选择只给 doneReasonReward (注释掉 stepReward)
+    // 但通常保留一点 stepReward 有助于平滑过渡。这里我们保留两者。
+    if (isDone)
+    {
+        //Debug.Log($"训练次数={count}");
+        // 可选优化：如果是终止帧，不再给予过程奖励，只给结果奖励，让因果更明确
+        // totalReward = doneReasonReward; 
+    }
+
+    AddReward(totalReward*trainscale);
+
+    if (isDone)
+    {
+        EndEpisode();
+    }
+}
+    
+    
+/// 使用tanh函数进行平滑归一化，避免硬截断
+/// </summary>
+private float TanhNorm(float value, float scale)
+{
+    return (float)System.Math.Tanh(value / scale);
+}
+
+/// <summary>
+/// 将角度归一化到[-180, 180]范围
+/// </summary>
+private float NormalizeAngle(float angle)
+{
+    angle %= 360f;
+    if (angle > 180f) angle -= 360f;
+    if (angle < -180f) angle += 360f;
+    return angle;
+}
+
+/// <summary>
+/// 线性归一化到[-1, 1]，带软截断
+/// </summary>
+private float LinearNorm(float value, float min, float max)
+{
+    float normalized = 2f * (value - min) / (max - min) - 1f;
+    return Mathf.Clamp(normalized, -1f, 1f);
+}
+
+private void set_1(Vector3 directiontest,Vector4 flycontrol)
+    {
+        directiontest[0]=flycontrol[0];
+        directiontest[1]=flycontrol[1];
+        directiontest[2]=flycontrol[2];
+    }
+
+private float directionrewards(Vector3 directiontest,Vector3 realdirection)
+    {
+         if (directiontest.magnitude == 0f || realdirection.magnitude == 0f)
+    {
+        return 0f; 
+    }
+
+    // 2. 归一化 (Normalize) + 点乘 (Dot)
+    // Unity 的 Vector3.Dot 配合 normalized 属性是最简洁的写法
+    float similarity = Vector3.Dot(directiontest.normalized, realdirection.normalized);
+
+    return similarity;
+    }
+}
