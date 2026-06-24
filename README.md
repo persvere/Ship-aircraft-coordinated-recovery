@@ -35,4 +35,5 @@ wave_t/Assets/Models/物理逻辑和算法/MPC/StepPredict.cs ：当前的世界
 **这是一个世界模型的槽位，可以在这个槽位插入任何世界模型，如果时间充裕，我希望尝试用基于transformer的神经网络去从数据中拟合一个世界模型**  
 wave_t/Assets/Models/物理逻辑和算法/MPC/FiniteDifferenceSolver.cs :他会根据世界模型的结果进行有限差分法，生成离散状态转移的雅各比矩阵  
 **该套算法目前处在开发中，整体的算法流程图如下**  
-<img width="1953" height="994" alt="image" src="https://github.com/user-attachments/assets/ec40e5ab-7339-46f1-9d5e-e85cf7f1ba56" />
+<img width="1953" height="994" alt="image" src="https://github.com/user-attachments/assets/ec40e5ab-7339-46f1-9d5e-e85cf7f1ba56" />  
+其中红色框代表每一轮运算需要读取的输入，虚线框代表循环结构，
