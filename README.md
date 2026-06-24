@@ -36,4 +36,4 @@ wave_t/Assets/Models/物理逻辑和算法/MPC/StepPredict.cs ：当前的世界
 wave_t/Assets/Models/物理逻辑和算法/MPC/FiniteDifferenceSolver.cs :他会根据世界模型的结果进行有限差分法，生成离散状态转移的雅各比矩阵  
 **该套算法目前处在开发中，整体的算法流程图如下**  
 <img width="1953" height="994" alt="image" src="https://github.com/user-attachments/assets/ec40e5ab-7339-46f1-9d5e-e85cf7f1ba56" />  
-其中红色框代表每一轮运算需要读取的输入，虚线框代表循环结构，
+其中红色框代表每一轮运算需要读取的输入，虚线框代表循环结构，黑色框代表需要开发的算法模块，蓝色框代表运算过程会产生的中间临时存储数据
