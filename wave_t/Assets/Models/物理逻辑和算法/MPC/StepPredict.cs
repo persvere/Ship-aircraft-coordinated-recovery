@@ -2,6 +2,8 @@ using UnityEngine;
 
 //**这个类是单步预测类，他依赖于真实物理类（DronePhysic)中的方法。。
 //**他的目的是做单步预测
+namespace MPC
+{
 public class StepPredict
 {
 //每次调用需要的变量
@@ -15,9 +17,8 @@ public class StepPredict
         //角速度
         public Vector3 angularVelocity;
     //**2控制量
-        //归一化电机控制量
-        public Vector4 targetThrust;
-        //电机延迟推力控制量
+
+        //电机推力控制量
         public Vector4 rotorThrust;
 //物理模型需要的参数
     //**1环境参数
@@ -106,8 +107,7 @@ public class StepPredict
         {   //临时变量
                 float realThrust;
                 float[] RealThrust = new float[4];
-            // 0. 指令推力电机延迟修正
-            UpdateMotorThrusts();
+
             for(int i = 0; i<4 ; i++)
             {   
                 // 1. 指令推力作为基准
@@ -473,4 +473,5 @@ public class StepPredict
     }
 
 
+}
 }
