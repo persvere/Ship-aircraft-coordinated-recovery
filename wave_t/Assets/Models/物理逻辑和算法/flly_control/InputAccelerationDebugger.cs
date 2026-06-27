@@ -14,7 +14,7 @@ public class InputAccelerationDebugger : MonoBehaviour
     [Tooltip("按下按键时设定的加速度 magnitude")]
     public float accelerationMagnitude = 2.0f;
     [Tooltip("偏航时的旋转角度")]
-    public float targetYaw = 3.0f;
+    public float targetYaw = 30.0f;
     
     [Tooltip("是否启用此调试器")]
     public bool enableDebugInput = true;

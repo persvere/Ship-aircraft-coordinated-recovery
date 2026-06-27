@@ -15,7 +15,7 @@ public class DronePhysics : MonoBehaviour
 
     [Header("旋翼结构参数")]
     public float rotorRadius = 0.1f;
-    public float Anti_torquecoefficient = 0.1f;
+    public float Anti_torquecoefficient = 1f;
     public Vector3[] rotorLocalPositions = new Vector3[4]
     {
         new Vector3(0.2f, 0.05f, 0.2f),   // 前右

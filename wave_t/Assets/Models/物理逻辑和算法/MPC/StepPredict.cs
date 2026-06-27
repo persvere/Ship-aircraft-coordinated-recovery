@@ -136,7 +136,7 @@ public class StepPredict
         //局部辅助函数
         /**************************************************************************************************/
         //延迟电机推力指令
-            private void UpdateMotorThrusts()
+        /*    private void UpdateMotorThrusts()
         {
         
                 for (int i = 0; i < 4; i++)

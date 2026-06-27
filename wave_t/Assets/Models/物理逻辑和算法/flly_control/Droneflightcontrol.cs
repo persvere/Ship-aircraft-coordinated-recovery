@@ -7,7 +7,7 @@ public class DroneFlightController : MonoBehaviour
     [Header("目标姿态")]
     public Quaternion targetattitude;
     [Header("控制变量")]
-    public Vector3 acceleration;       //预定加速度
+    public Vector3 acceleration= Vector3.zero;       //预定加速度
     public float biasyaw=3f;          //偏航角度,向右为正
     public float thrustlongth;        //推力模长
     
@@ -129,7 +129,7 @@ public class DroneFlightController : MonoBehaviour
         float biasyaw)
     {
         // 1. 计算姿态误差
-        attitudeError = CalculateAttitudeError(targetAttitude, currentAttitude);
+        attitudeError = CalculateAttitudeError(targetAttitude, currentAttitude,yawinertia,biasyaw);
         
         // 2. 姿态环PID：计算目标角速度
         targetAngularRate = CalculateTargetAngularRate(attitudeError, dt ,yawinertia ,biasyaw);
@@ -144,17 +144,19 @@ public class DroneFlightController : MonoBehaviour
         torqueOutput = CalculateTorqueFromRateError(rateError, dt);
 
         // 6 .还原到机体坐标系
-        Vector3 torqueBody = Quaternion.Inverse(dronePhysics.attitude)*torqueOutput ;
+        Vector3 torqueBody = Quaternion.Inverse(dronePhysics.attitude)*torqueOutput +new Vector3(0f, biasyaw*yawinertia, 0f);
 
         
-        return torqueBody+ new Vector3(0,biasyaw*yawinertia,0); //浏览
+        return torqueBody; //浏览
     }
     //计算姿态误差函数
-    private Vector3 CalculateAttitudeError(Quaternion target, Quaternion current)
-{
-    
-    Quaternion errorQuat = target * Quaternion.Inverse(current);
-    
+    private Vector3 CalculateAttitudeError(Quaternion target, Quaternion current, float yawinertia,float biasyaw)
+    {
+    //控制偏航
+    Quaternion yawOffsetQuat = Quaternion.Euler(0f, biasyaw*yawinertia, 0f);
+
+    //实际目标旋转
+    Quaternion errorQuat = yawOffsetQuat * (target * Quaternion.Inverse(current));
     // 2. 转换为轴角 (世界坐标系)
     errorQuat.ToAngleAxis(out float angle, out Vector3 axisWorld);
     
@@ -167,12 +169,12 @@ public class DroneFlightController : MonoBehaviour
     
    
     
-    // 4. 计算机体坐标系下的误差向量
+    // 4. 计算世界坐标系下的误差向量
     
-    Vector3 error = axisWorld * angle ;
+    Vector3 error = axisWorld * angle *20;
     
     return error;
-}
+    }
     // 姿态环：从姿态误差计算目标角速度
     private Vector3 CalculateTargetAngularRate(Vector3 attitudeError, float dt,float yawinertia,float biasyaw)
     {
